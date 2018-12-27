@@ -8,13 +8,13 @@ from setuptools import setup
 with open('README.rst') as f:
     long_description = f.read()
 
-with open('nosetimer/__init__.py') as f:
+with open('nose2_timer/__init__.py') as f:
     version = re.search(r'__version__ = \'(.*?)\'', f.read()).group(1)
 
 setup(
-    name='nose-timer',
+    name='nose2-timer',
     version=version,
-    description='A timer plugin for nosetests',
+    description='A timer plugin for nose2',
     long_description=long_description,
     author=', '.join([
         'Alister Cordiner',
@@ -31,15 +31,15 @@ setup(
         'Raoul Snyman',
         'Stanislav Kudriashev',
     ]),
-    url='https://github.com/mahmoudimus/nose-timer',
-    packages=['nosetimer', ],
+    url='https://github.com/Topperfalkon/nose2-timer',
+    packages=['nose2_timer', ],
     install_requires=[
-        'nose',
+        'nose2',
     ],
     license='MIT',
     entry_points={
         'nose.plugins.0.10': [
-            'nosetimer = nosetimer.plugin:TimerPlugin',
+            'nose2_timer = nose2_timer.plugin:TimerPlugin',
         ]
     },
     classifiers=[
