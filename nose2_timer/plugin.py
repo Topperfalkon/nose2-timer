@@ -222,7 +222,6 @@ class TimerPlugin(Plugin):
             self._register_time(test, 'success')
             time_taken = self._time_taken()
             if self.timer_fail is not None and time_taken * 1000.0 > self.threshold:
-                print('I hit the timer fail condition yo')
                 # We have to set the outcome as a failure
                 event.reason = 'Test was too slow (took {0:0.4f}s, threshold was '\
                                 '{1:0.4f}s)'.format(time_taken, self.threshold / 1000.0)                                
