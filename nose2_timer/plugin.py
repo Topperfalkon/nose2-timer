@@ -7,11 +7,6 @@ import timeit
 from nose2 import result
 from nose2.events import Plugin
 
-try:
-    import Queue
-except ImportError:
-    import queue as Queue
-
 from collections import OrderedDict
 
 try:
@@ -31,52 +26,6 @@ except ImportError:
 
 # define constants
 IS_NT = os.name == 'nt'
-
-# Windows and Python 2.7 multiprocessing don't marry well.
-_results_queue = None
-if not IS_NT:
-    import multiprocessing
-    from multiprocessing import queues
-
-    class TimerQueue(queues.Queue):
-        """A portable implementation of multiprocessing.Queue.
-
-        Because of multithreading / multiprocessing semantics, Queue.qsize()
-        may raise the NotImplementedError exception on Unix platforms like
-        Mac OS X where sem_getvalue() is not implemented. This subclass
-        addresses this problem by using a synchronized shared counter
-        (initialized to zero) and increasing / decreasing its value every time
-        the put() and get() methods are called, respectively. This not only
-        prevents NotImplementedError from being raised, but also allows us to
-        implement a reliable version of both qsize() and empty().
-        """
-
-        def __init__(self, *args, **kwargs):
-            if hasattr(multiprocessing, 'get_context'):
-                kwargs.update(ctx=multiprocessing.get_context())
-            super(TimerQueue, self).__init__(*args, **kwargs)
-            self.size = multiprocessing.Value('i', 0)
-
-        def put(self, *args, **kwargs):
-            with self.size.get_lock():
-                self.size.value += 1
-            super(TimerQueue, self).put(*args, **kwargs)
-
-        def get(self, *args, **kwargs):
-            with self.size.get_lock():
-                self.size.value -= 1
-            return super(TimerQueue, self).get(*args, **kwargs)
-
-        def qsize(self):
-            """Reliable implementation of multiprocessing.Queue.qsize()."""
-            return self.size.value
-
-        def empty(self):
-            """Reliable implementation of multiprocessing.Queue.empty()."""
-            return not self.qsize()
-
-    _results_queue = TimerQueue()
-
 
 log = logging.getLogger('nose.plugin.timer')
 
@@ -116,6 +65,7 @@ class TimerPlugin(Plugin):
         self.timer_fail = self.config.as_str('timer-fail', default='error')
         self.timer_no_color = self.config.as_bool('colorize', default=True)
         self.json_file = self.config.as_str('log-file', default=None)
+        self._outcome = ''
         self.options()        
 
     @property
@@ -197,8 +147,6 @@ class TimerPlugin(Plugin):
 
     def _register_time(self, test, status=None):
         time_taken = self._time_taken()
-        # if self.multiprocessing_enabled:
-        #     _results_queue.put((test.id(), time_taken, None))
 
         self._timed_tests[test.id()] = {
             'time': time_taken,
@@ -206,17 +154,13 @@ class TimerPlugin(Plugin):
         }
         return time_taken
 
-    # def configure(self, options, config):
-    #     """Configures the test timer plugin."""
-    #     super(TimerPlugin, self).configure(options, config)
-    #     self.config = config
-    #         # determine if multiprocessing plugin enabled
-    #         self.multiprocessing_enabled = \
-    #             bool(getattr(options, 'multiprocess_workers', False))
-
 
     def register(self):
         super(TimerPlugin, self).register()
+
+    # Multiprocess handling
+    def registerInSubprocess(self, event):
+        event.pluginClasses.append(self.__class__)
 
     def startTest(self, event):
         """Initializes a timer before starting a test."""
@@ -224,18 +168,6 @@ class TimerPlugin(Plugin):
 
     def afterSummaryReport(self, event):
         """Report the test times."""
-
-        # TODO: Probably use multiprocess built-in events
-        # if multiprocessing plugin enabled - get items from results queue
-        # if self.multiprocessing_enabled:
-        #     for i in range(_results_queue.qsize()):
-        #         try:
-        #             k, v, s = _results_queue.get(False)
-        #             self._timed_tests[k] = {
-        #                 'time': v,
-        #                 'status': s,
-        #             }
-        #         except Queue.Empty:
 
         sorted_times = sorted(self._timed_tests.items(),
                    key=lambda item: item[1]['time'],
@@ -273,10 +205,12 @@ class TimerPlugin(Plugin):
         # No handlng for skipped tests yet
         test = event.test
         if event.outcome == result.ERROR:
-            self._register_time(test, 'error')
+            # self._register_time(test, 'error')
+            self._outcome = event.outcome
         elif event.outcome == result.FAIL:
             # This probably won't work well with expected failures yet
-            self._register_time(test, 'fail')
+            # self._register_time(test, 'fail')
+            self._outcome = event.outcome
 
     def setTestOutcome(self, event):
         """
@@ -294,18 +228,16 @@ class TimerPlugin(Plugin):
                                 '{1:0.4f}s)'.format(time_taken, self.threshold / 1000.0)                                
                 event.outcome = result.FAIL
                 event.expected = False # We don't expect these to fail
-                self._register_time(test, 'fail')
+                # self._register_time(test, 'fail')
+                self._outcome = event.outcome
             else:
-                self._register_time(test, 'success')
+                # self._register_time(test, 'success')
+                self._outcome = event.outcome
 
+    def stopTest(self, event):
+        test = event.test
+        self._register_time(test, self._outcome)
 
-    def addSuccess(self, test, capt=None):
-        """Called when a test passes."""
-        time_taken = self._register_time(test, 'success')
-        if self.timer_fail is not None and \
-                time_taken * 1000.0 > self.threshold:
-            test.fail('Test was too slow (took {0:0.4f}s, threshold was '
-                      '{1:0.4f}s)'.format(time_taken, self.threshold / 1000.0))
 
     # def beforeSummaryReport(self, event):
     #     """Called before the first test is run."""
@@ -334,7 +266,7 @@ class TimerPlugin(Plugin):
         # timer top n
         self.addArgument(
             callback=self.timer_top_n,
-            short_opt='N',
+            short_opt='',
             long_opt='timer-top-n',
             help_text=(
                 "When the timer plugin is enabled, only show the N tests that "
