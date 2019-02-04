@@ -158,9 +158,6 @@ class TimerPlugin(Plugin):
     def register(self):
         super(TimerPlugin, self).register()
 
-    # Multiprocess handling
-    def registerInSubprocess(self, event):
-        event.pluginClasses.append(self.__class__)
 
     def startTest(self, event):
         """Initializes a timer before starting a test."""
