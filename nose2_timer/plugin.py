@@ -202,11 +202,9 @@ class TimerPlugin(Plugin):
         # No handlng for skipped tests yet
         test = event.test
         if event.outcome == result.ERROR:
-            # self._register_time(test, 'error')
             self._outcome = event.outcome
         elif event.outcome == result.FAIL:
             # This probably won't work well with expected failures yet
-            # self._register_time(test, 'fail')
             self._outcome = event.outcome
 
     def setTestOutcome(self, event):
@@ -224,36 +222,13 @@ class TimerPlugin(Plugin):
                                 '{1:0.4f}s)'.format(time_taken, self.threshold / 1000.0)                                
                 event.outcome = result.FAIL
                 event.expected = False # We don't expect these to fail
-                # self._register_time(test, 'fail')
                 self._outcome = event.outcome
             else:
-                # self._register_time(test, 'success')
                 self._outcome = event.outcome
 
     def stopTest(self, event):
         test = event.test
         self._register_time(test, self._outcome)
-
-
-    # def beforeSummaryReport(self, event):
-    #     """Called before the first test is run."""
-    #     def _add_success(self, event, test):
-    #         """Called when a test passes."""
-    #         if event.showAll:
-    #             output = 'ok'
-    #             time_taken = self._timed_tests.get(test.id())['time']
-    #             if time_taken is not None:
-    #                 color = self._get_result_color(time_taken)
-    #                 output += ' ({0})'.format(self._colored_time(time_taken,
-    #                                                              color))
-    #             event.stream.writeln(output)
-    #         elif event.dots:
-    #             event.stream.write('.')
-    #             event.stream.flush()
-
-    #     # monkeypatch the result
-    #     event.addSuccess = lambda test: _add_success(event, test)
-    #     event._timed_tests = self._timed_tests
 
     def options(self, env=os.environ):
         """Register commandline options."""
