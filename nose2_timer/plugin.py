@@ -258,7 +258,6 @@ class TimerPlugin(Plugin):
     #     event.addSuccess = lambda test: _add_success(event, test)
     #     event._timed_tests = self._timed_tests
 
-    # TODO: Make these command-line options behave the nose2 'way'
     def options(self, env=os.environ):
         """Register commandline options."""
 
