@@ -200,7 +200,6 @@ class TimerPlugin(Plugin):
         Handles test outcomes to register timings
         """
         # No handlng for skipped tests yet
-        test = event.test
         if event.outcome == result.ERROR:
             self._outcome = event.outcome
         elif event.outcome == result.FAIL:

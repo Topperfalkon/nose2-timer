@@ -17,6 +17,7 @@ setup(
     description='A timer plugin for nose2',
     long_description=long_description,
     author='Harley Faggetter',
+    author_email='topperfalkon+python@gmail.com',
     url='https://github.com/Topperfalkon/nose2-timer',
     packages=['nose2_timer', ],
     install_requires=[
