@@ -36,7 +36,7 @@ Coming soon...
 License
 -------
 
-``nose-timer`` is MIT Licensed library.
+``nose2-timer`` is MIT Licensed library.
 
 
 Contribute
